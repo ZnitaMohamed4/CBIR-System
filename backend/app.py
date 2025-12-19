@@ -21,7 +21,7 @@ api = Api(app)
 app.config['UPLOAD_FOLDER'] = Path(__file__).parent / 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
-app.config['MODEL_PATH'] = Path(__file__).parent.parent / 'models' / 'best1.pt'
+app.config['MODEL_PATH'] = Path(__file__).parent.parent / 'models' / 'yolov8n_15classes_finetuned.pt'
 app.config['DATABASE_PATH'] = Path(__file__).parent / 'database' / 'features.json'
 
 # Create necessary directories
