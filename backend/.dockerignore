@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+uploads
+database
+*.sqlite3
+.venv
+.git
+Dockerfile

@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: cbir-backend
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/database:/app/database
+      - ./models:/app/models:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: cbir-frontend
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
