@@ -142,12 +142,24 @@ class ImageManager:
         return None
     
     def delete_image(self, image_id):
-        """Delete an image"""
+        """Delete an image and its database entries"""
+        from services.similarity_search import SimilaritySearchService
+        from pathlib import Path
+        
+        # Delete physical file
+        deleted = False
         for filepath in self.upload_folder.glob(f'{image_id}.*'):
             if filepath.is_file():
                 filepath.unlink()
-                return True
-        return False
+                deleted = True
+        
+        # Delete from features database
+        if deleted:
+            db_path = Path(__file__).parent.parent / 'database' / 'features.json'
+            similarity_service = SimilaritySearchService(str(db_path))
+            similarity_service.delete_image_data(image_id)
+        
+        return deleted
     
     def delete_images(self, image_ids):
         """Delete multiple images"""

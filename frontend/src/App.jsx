@@ -1,4 +1,4 @@
-// src/App.jsx
+// frontend/src/App.jsx
 
 import { useState } from 'react'
 import Header from './components/Header'
@@ -13,7 +13,15 @@ import FeatureViewer from './components/FeatureViewer'
 import Toast from './components/Toast'
 import { Info } from 'lucide-react'
 
+// Import new step components
+import WorkflowTabs from './components/steps/WorkflowTabs'
+import UploadStep from './components/steps/UploadStep'
+import DetectionStep from './components/steps/DetectionStep'
+import SearchConfigStep from './components/steps/SearchConfigStep'
+import ResultsStep from './components/steps/ResultsStep'
+
 function App() {
+  // Existing state
   const [uploadedImage, setUploadedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -21,48 +29,48 @@ function App() {
   const [selectedObjects, setSelectedObjects] = useState([])
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
-  const [featureWeights, setFeatureWeights] = useState({ color: 40, texture: 60, shape: 30 })
+  const [featureWeights, setFeatureWeights] = useState({ color: 40, texture: 30, shape: 30 })
   const [imageId, setImageId] = useState(null)
   const [currentPage, setCurrentPage] = useState('upload')
   const [showFeatures, setShowFeatures] = useState(false)
   const [currentFeatures, setCurrentFeatures] = useState(null)
   const [toast, setToast] = useState(null)
 
+  // NEW: Step workflow state
+  const [currentStep, setCurrentStep] = useState(1)
+  const [completedSteps, setCompletedSteps] = useState([])
+
   const showToast = (message, type = 'info') => {
     setToast({ message, type })
   }
 
+  // NEW: Step completion handler
+  const completeStep = (step) => {
+    if (!completedSteps.includes(step)) {
+      setCompletedSteps([...completedSteps, step])
+    }
+  }
+
   // Handler to view extracted features
   const handleViewFeatures = async () => {
-    console.log('=== VIEW FEATURES START ===')
     if (!imageId || selectedObjects.length === 0) {
       showToast('Please select an object first', 'warning')
       return
     }
     
     const objectId = selectedObjects[0]
-    console.log('Fetching features for:', imageId, objectId)
     
     try {
-      // Try to get features first
-      console.log('Attempting to get features...')
       const result = await api.getFeatures(imageId, objectId)
-      console.log('Got features:', result)
       setCurrentFeatures(result.features)
       setShowFeatures(true)
-      console.log('Modal should open now')
     } catch (error) {
-      // If features don't exist, extract them first
-      console.log('Features not found, extracting...')
       try {
         await api.extractFeatures(imageId, objectId)
-        console.log('Extraction complete, fetching...')
         const result = await api.getFeatures(imageId, objectId)
-        console.log('Got features after extraction:', result)
         setCurrentFeatures(result.features)
         setShowFeatures(true)
       } catch (extractError) {
-        console.error('Failed:', extractError)
         showToast('Failed to load features: ' + extractError.message, 'error')
       }
     }
@@ -76,14 +84,13 @@ function App() {
     }
     reader.readAsDataURL(file)
     
-    // Upload to backend and detect objects
     await uploadAndDetect(file)
   }
 
   const uploadAndDetect = async (file) => {
-    console.log('=== uploadAndDetect START ===')
     setIsProcessing(true)
     setSearchResults([])
+    setCompletedSteps([]) // Reset workflow
     
     try {
       // 1. Upload image
@@ -106,16 +113,23 @@ function App() {
       setDetectedObjects(formattedDetections)
       setSelectedObjects(formattedDetections.length > 0 ? [0] : [])
       
-      // 4. Pre-extract features for first object in background
+      // 4. Complete step 1 and move to step 2
       if (formattedDetections.length > 0) {
+        console.log('✅ Detection complete, imageId:', newImageId)
         showToast(`Detected ${formattedDetections.length} object(s)`, 'success')
+        completeStep(1)
+        
+        // Wait a tiny bit to ensure state is updated
+        setTimeout(() => {
+          setCurrentStep(2) // Auto-advance to detection step
+        }, 100)
+        
+        // Pre-extract features in background
         api.extractFeatures(newImageId, 0).catch(err => 
           console.error('Background feature extraction failed:', err)
         )
-      } else {
-        showToast('No objects detected in image', 'warning')
       }
-      
+          
     } catch (error) {
       console.error('Error:', error)
       showToast('Failed to process image: ' + error.message, 'error')
@@ -131,6 +145,8 @@ function App() {
     setSelectedObjects([])
     setSearchResults([])
     setImageId(null)
+    setCurrentStep(1)
+    setCompletedSteps([])
   }
 
   const toggleObjectSelection = (id) => {
@@ -146,78 +162,81 @@ function App() {
   }
 
   const handleSearch = async (weights) => {
-    if (selectedObjects.length === 0) {
-      showToast('Please select at least one detected object to search', 'warning')
-      return
-    }
+  if (selectedObjects.length === 0) {
+    showToast('Please select at least one detected object to search', 'warning')
+    return
+  }
 
-    setIsSearching(true)
+  setIsSearching(true)
+  
+  try {
+    const objectId = selectedObjects[0]
     
-    try {
-      // Use first selected object for search
-      const objectId = selectedObjects[0]
-      
-      // 1. Extract features first (if not already extracted)
-      await api.extractFeatures(imageId, objectId)
-      
-      // 2. Convert weights from percentage to decimal
-      // Distribute weights across all feature types
-      const apiWeights = {
+    // Extract features first (ensure they exist)
+    console.log('🔧 Ensuring features are extracted...', { imageId, objectId })
+    await api.extractFeatures(imageId, objectId)
+    
+    // ✅ FIX: Handle null weights (automatic mode)
+    let apiWeights = null
+    if (weights) {
+      // Manual weights from Advanced Mode
+      apiWeights = {
         color: weights.color / 100,
-        texture_tamura: weights.texture / 300,  // Split texture weight 3 ways
+        texture_tamura: weights.texture / 300,
         texture_gabor: weights.texture / 300,
         texture_lbp: weights.texture / 300,
-        shape_hu: weights.shape / 300,  // Split shape weight 3 ways
+        shape_hu: weights.shape / 300,
         shape_hog: weights.shape / 300,
         shape_contour: weights.shape / 300
       }
-      
-      // 3. Search for similar objects
-      const searchResult = await api.searchSimilar(
-        imageId, 
-        objectId, 
-        20,  // top 20 results
-        apiWeights
-      )
-      
-      // 4. Format results for UI - ✅ FIX: Convert similarity to percentage and map fields correctly
-      const formattedResults = searchResult.similar_objects.map((obj, idx) => ({
-        id: `${obj.image_id}-${obj.object_id}`,
-        imageId: obj.image_id,
-        objectId: obj.object_id,
-        filename: obj.filename,  // ✅ Include filename from API response
-        similarity: Math.round(Math.min(obj.similarity * 100, 100)),  // ✅ Convert to percentage and cap at 100
-        className: obj.class,
-        confidence: Math.round(obj.confidence * 100),
-        bbox: obj.bbox
-      }))
-      
-      setSearchResults(formattedResults)
-      
-      if (formattedResults.length > 0) {
-        showToast(`Found ${formattedResults.length} similar images`, 'success')
-      } else {
-        showToast('No similar images found', 'info')
-      }
-      
-    } catch (error) {
-      console.error('Search error:', error)
-      showToast('Search failed: ' + error.message, 'error')
-    } finally {
-      setIsSearching(false)
     }
-  }
-
-  const handleUseImageAsQuery = async (imageId, filename) => {
-    // Switch to upload page
-    setCurrentPage('upload')
+    // If weights is null, backend will use automatic class-specific weights
     
-    // Set image preview
+    console.log('🔍 Searching with weights:', apiWeights ? 'custom' : 'automatic')
+    
+    // Search
+    const searchResult = await api.searchSimilar(imageId, objectId, 20, apiWeights)
+    
+    console.log('✅ Search results:', searchResult.similar_objects.length)
+    
+    // Format results
+    const formattedResults = searchResult.similar_objects.map((obj) => ({
+      id: `${obj.image_id}-${obj.object_id}`,
+      imageId: obj.image_id,
+      objectId: obj.object_id,
+      filename: obj.filename,
+      similarity: Math.round(Math.min(obj.similarity * 100, 100)),
+      className: obj.class,
+      confidence: Math.round(obj.confidence * 100),
+      bbox: obj.bbox
+    }))
+    
+    setSearchResults(formattedResults)
+    
+    if (formattedResults.length > 0) {
+      showToast(`Found ${formattedResults.length} similar images`, 'success')
+      completeStep(3)
+      setCurrentStep(4) // Move to results
+    } else {
+      showToast('No similar images found', 'info')
+    }
+    
+  } catch (error) {
+    console.error('Search error:', error)
+    showToast('Search failed: ' + error.message, 'error')
+  } finally {
+    setIsSearching(false)
+  }
+}
+  const handleUseImageAsQuery = async (imageId, filename) => {
+    setCurrentPage('upload')
+    setCurrentStep(1)
+    setCompletedSteps([])
+    
     const imageUrl = api.getImageUrl(filename)
     setImagePreview(imageUrl)
     setImageId(imageId)
     
-    // Detect objects
     setIsProcessing(true)
     try {
       const detectResult = await api.detectObjects(imageId)
@@ -233,9 +252,11 @@ function App() {
       setDetectedObjects(formattedDetections)
       setSelectedObjects(formattedDetections.length > 0 ? [0] : [])
       
-      // Pre-extract features
       if (formattedDetections.length > 0) {
         showToast('Image loaded as query', 'success')
+        completeStep(1)
+        setCurrentStep(2)
+        
         api.extractFeatures(imageId, 0).catch(err => 
           console.error('Background feature extraction failed:', err)
         )
@@ -249,118 +270,106 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    {/* Header - Hidden on upload page, shown on gallery */}
+    {currentPage === 'gallery' && (
       <Header currentPage={currentPage} onNavigate={setCurrentPage} />
+    )}
 
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      <main className="pt-20 px-6 pb-6">
-        <div className="max-w-[1800px] mx-auto">
-          {currentPage === 'upload' ? (
-            <div className="grid grid-cols-5 gap-6 h-[calc(100vh-120px)]">
-              
-              {/* LEFT PANEL */}
-              <div className="col-span-2 panel p-6 overflow-y-auto">
-                <h2 className="text-lg font-semibold text-[#212529] mb-4">
-                  📤 Upload Query Image
-                </h2>
-                
-                {!imagePreview ? (
-                  <ImageUpload onImageUpload={handleImageUpload} />
-                ) : (
-                  <ImageWithBoundingBoxes 
-                    imageUrl={imagePreview} 
-                    detections={detectedObjects}
-                    onClear={handleClearImage} 
-                  />
-                )}
-
-                {isProcessing && (
-                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin h-5 w-5 border-2 border-[#007BFF] border-t-transparent rounded-full"></div>
-                      <span className="text-[#007BFF] font-medium">Detecting objects...</span>
-                    </div>
-                  </div>
-                )}
-
-                <DetectedObjects 
-                  objects={detectedObjects}
-                  selectedObjects={selectedObjects}
-                  onToggleSelection={toggleObjectSelection}
-                />
-
-                {detectedObjects.length > 0 && (
-                  <FeatureWeights 
-                    onWeightsChange={handleWeightsChange}
-                    onSearch={handleSearch}
-                  />
-                )}
-
-                {/* VIEW FEATURES BUTTON */}
-                {detectedObjects.length > 0 && imageId && (
-                  <button
-                    onClick={handleViewFeatures}
-                    className="mt-4 w-full flex items-center justify-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Info className="w-5 h-5" />
-                    <span>View Extracted Features</span>
-                  </button>
-                )}
-              </div>
-
-              {/* RIGHT PANEL */}
-              <div className="col-span-3 panel p-6 overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-[#212529]">
-                    🎯 Search Results
-                    {searchResults.length > 0 && (
-                      <span className="ml-2 text-sm font-normal text-[#6C757D]">
-                        ({searchResults.length} images)
-                      </span>
-                    )}
-                  </h2>
-                  {searchResults.length > 0 && (
-                    <div className="flex space-x-3">
-                      <select className="input-field py-1 text-sm">
-                        <option>Sort by: Similarity</option>
-                        <option>Sort by: Date</option>
-                      </select>
-                      <select className="input-field py-1 text-sm">
-                        <option>Filter: All</option>
-                        <option>Filter: High Match (&gt;90%)</option>
-                        <option>Filter: Medium Match (70-90%)</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <SearchResults results={searchResults} isLoading={isSearching} />
-              </div>
-
-            </div>
-          ) : (
-            <Gallery onUseAsQuery={handleUseImageAsQuery} showToast={showToast} />
-          )}
+    {/* Workflow Navigation - Only on upload page */}
+    {currentPage === 'upload' && (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gradient">SmartGallery CBIR</h1>
+          <button
+            onClick={() => setCurrentPage('gallery')}
+            className="btn-secondary text-sm"
+          >
+            View Gallery
+          </button>
         </div>
-      </main>
-
-      {/* FEATURE VIEWER MODAL */}
-      {showFeatures && (
-        <FeatureViewer
-          features={currentFeatures}
-          onClose={() => setShowFeatures(false)}
+        <WorkflowTabs 
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          onStepClick={setCurrentStep}
         />
-      )}
-    </div>
-  )
-}
+      </div>
+    )}
 
+    {/* Toast Notification */}
+    {toast && (
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(null)}
+      />
+    )}
+
+    {currentPage === 'upload' ? (
+      <>
+        {/* Main Content with top padding for fixed header */}
+        <main className="pt-[160px] px-6 pb-6">
+          {/* Step 1: Upload */}
+          {currentStep === 1 && (
+            <UploadStep
+              imagePreview={imagePreview}
+              onImageUpload={handleImageUpload}
+              onNavigateToGallery={() => setCurrentPage('gallery')}
+              isProcessing={isProcessing}
+            />
+          )}
+
+          {/* Step 2: Object Detection & Selection */}
+          {currentStep === 2 && (
+            <DetectionStep
+              imagePreview={imagePreview}
+              detectedObjects={detectedObjects}
+              selectedObjects={selectedObjects}
+              onToggleSelection={toggleObjectSelection}
+              onClear={handleClearImage}
+              onNext={() => {
+                completeStep(2)
+                setCurrentStep(3)
+              }}
+              onViewFeatures={handleViewFeatures}
+              imageId={imageId}  // ← This line exists but check if it's there
+            />
+          )}
+
+          {/* Step 3: Search Configuration */}
+          {currentStep === 3 && (
+            <SearchConfigStep
+              featureWeights={featureWeights}
+              onWeightsChange={handleWeightsChange}
+              onSearch={(weights) => handleSearch(weights)}
+              selectedObject={detectedObjects[selectedObjects[0]]}
+              imageId={imageId}
+            />
+          )}
+
+          {/* Step 4: Results */}
+          {currentStep === 4 && (
+            <ResultsStep
+              results={searchResults}
+              isSearching={isSearching}
+            />
+          )}
+        </main>
+      </>
+    ) : (
+      <main className="pt-20 px-6 pb-6">
+        <Gallery onUseAsQuery={handleUseImageAsQuery} showToast={showToast} />
+      </main>
+    )}
+
+    {/* Feature Viewer Modal */}
+    {showFeatures && (
+      <FeatureViewer
+        features={currentFeatures}
+        onClose={() => setShowFeatures(false)}
+      />
+    )}
+  </div>
+)
+}
 export default App
