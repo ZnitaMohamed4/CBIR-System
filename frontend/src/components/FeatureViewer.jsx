@@ -124,21 +124,34 @@ function ColorFeatures({ features }) {
       <div>
         <h3 className="text-lg font-bold text-slate-800 mb-3">RGB Histogram</h3>
         <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-          {features.histogram_rgb && (
+          {features.histogram_rgb && features.histogram_rgb.length > 0 ? (
             <div className="flex items-end space-x-1 h-32">
-              {features.histogram_rgb.slice(0, 48).map((value, idx) => (
-                <div
-                  key={idx}
-                  className="flex-1 bg-gradient-to-t rounded-t"
-                  style={{
-                    height: `${value * 100}%`,
-                    backgroundColor: idx < 16 ? '#EF4444' : idx < 32 ? '#10B981' : '#3B82F6',
-                    opacity: 0.7
-                  }}
-                  title={`Bin ${idx}: ${(value * 100).toFixed(1)}%`}
-                />
-              ))}
+              {(() => {
+                // Find max value for scaling
+                const maxValue = Math.max(...features.histogram_rgb)
+                
+                return features.histogram_rgb.slice(0, 48).map((value, idx) => {
+                  // Scale to max value for better visualization
+                  const heightPercent = maxValue > 0 ? (value / maxValue) * 100 : 0
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className="flex-1 rounded-t transition-all hover:opacity-100"
+                      style={{
+                        height: `${heightPercent}%`,
+                        minHeight: value > 0 ? '2px' : '0px', // Ensure visible bars
+                        backgroundColor: idx < 16 ? '#EF4444' : idx < 32 ? '#10B981' : '#3B82F6',
+                        opacity: 0.8
+                      }}
+                      title={`Bin ${idx}: ${(value * 100).toFixed(2)}%`}
+                    />
+                  )
+                })
+              })()}
             </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic">No histogram data available</p>
           )}
         </div>
       </div>

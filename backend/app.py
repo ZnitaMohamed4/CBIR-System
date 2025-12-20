@@ -232,23 +232,27 @@ class SimilaritySearch(Resource):
         similar_objects = similarity_service.find_similar(
             query_features=query_features,
             query_class=query_class,
-            top_k=top_k, 
+            top_k=top_k * 2,  # Get more results to filter
             weights=weights,
             exclude_image_id=query_image_id,
             same_class_only=True
         )
         
-        # ✅ ADD FILENAME TO EACH RESULT
+        # ✅ FILTER OUT MISSING IMAGES & ADD FILENAME
+        valid_results = []
         for obj in similar_objects:
             image_info = image_manager.get_image(obj['image_id'])
-            if image_info:
+            if image_info:  # Only include if image file still exists
                 obj['filename'] = image_info['filename']
+                valid_results.append(obj)
+                if len(valid_results) >= top_k:  # Stop when we have enough valid results
+                    break
         
         return {
             'query_image_id': query_image_id,
             'query_object_id': query_object_id,
             'query_class': query_class,
-            'similar_objects': similar_objects
+            'similar_objects': valid_results
         }, 200
 
 class FeatureVisualize(Resource):
