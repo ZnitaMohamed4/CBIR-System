@@ -1,158 +1,127 @@
-# ImageNet Categories for CBIR System
+This is the comprehensive, professional `README.md` for your project. It includes a detailed explanation of the **AI Pipeline**, the **DevOps architecture**, and placeholders for your workflow images.
 
-This document describes the 15 ImageNet categories used in this Content-Based Image Retrieval (CBIR) system. The YOLOv8n model has been fine-tuned on these specific categories.
+---
 
-## Selected Categories
+# 🖼️ SmartGallery CBIR System
+### *AI-Powered Content-Based Image Retrieval with YOLOv8*
 
-| ID | Category Name | WordNet Synset | Description |
-|----|---------------|----------------|-------------|
-| 0 | Person | n07942152 | Human beings, people |
-| 1 | Bicycle | n02834778 | Two-wheeled vehicles |
-| 2 | Car | n02958343 | Automobiles, motor cars |
-| 4 | Airplane | n02691156 | Aircraft, aeroplanes |
-| 8 | Boat | n02858304 | Watercraft, ships |
-| 9 | Traffic Light | n06874185 | Traffic signals |
-| 14 | Bird | n01503061 | Avian species |
-| 15 | Cat | n02121620 | Domestic cats, felines |
-| 16 | Dog | n02084071 | Domestic dogs, canines |
-| 17 | Horse | n02374451 | Equines |
-| 25 | Umbrella | n04507155 | Rain protection devices |
-| 39 | Bottle | n02876657 | Containers for liquids |
-| 47 | Apple | n07739125 | Fruit, apples |
-| 52 | Pizza | n07873807 | Italian food dish |
-| 63 | Laptop | n03642806 | Portable computers |
+SmartGallery is a high-performance **Full-Stack CBIR (Content-Based Image Retrieval)** system. It allows users to upload images, automatically detect objects using a fine-tuned **YOLOv8** model, extract deep visual features (Color, Texture, Shape), and perform similarity searches across a gallery.
 
-## Category Distribution
+---
 
-The categories were selected to provide diverse coverage across:
+## 🛠️ Technology Stack
+- **Frontend:** React.js (Vite), TailwindCSS, Axios.
+- **Backend:** Flask, Flask-RESTful, Gunicorn.
+- **AI/ML:** Ultralytics YOLOv8, OpenCV, Scikit-Learn, Scikit-Image.
+- **DevOps:** Docker, Docker Compose, Nginx (Reverse Proxy).
 
-### Living Beings
-- **Person** (n07942152): Most common object in everyday images
-- **Bird** (n01503061): Represents flying animals
-- **Cat** (n02121620): Common household pet
-- **Dog** (n02084071): Common household pet
-- **Horse** (n02374451): Larger domestic animal
+---
 
-### Vehicles & Transportation
-- **Bicycle** (n02834778): Human-powered vehicle
-- **Car** (n02958343): Most common motor vehicle
-- **Airplane** (n02691156): Air transportation
-- **Boat** (n02858304): Water transportation
+## 🔄 The AI Pipeline Workflow
 
-### Objects & Items
-- **Traffic Light** (n06874185): Urban infrastructure
-- **Umbrella** (n04507155): Common accessory
-- **Bottle** (n02876657): Everyday container
-- **Apple** (n07739125): Common food item
-- **Pizza** (n07873807): Popular food dish
-- **Laptop** (n03642806): Technology device
+The system follows a sophisticated 5-step pipeline to ensure high-accuracy image retrieval:
 
-## Model Training
+### 1. Image Ingestion & Management
+User uploads an image via the React interface. The **ImageManager** service handles storage and serves the files through an Nginx-proxied static route.
 
-The YOLOv8n model was fine-tuned using the following approach:
+### 2. Object Detection (YOLOv8)
+The backend runs the query image through a fine-tuned **YOLOv8n** model trained on 15 specific categories. It identifies bounding boxes (BBox) and class labels.
+> **Categories:** *Person, Bicycle, Car, Airplane, Boat, Traffic Light, Bird, Cat, Dog, Horse, Umbrella, Bottle, Apple, Pizza, Laptop.*
 
-1. **Base Model**: YOLOv8n pre-trained on COCO dataset
-2. **Training Data**: Subset of ImageNet images for the 15 categories
-3. **Data Augmentation**: 
-   - Random horizontal flip
-   - Random scaling (0.5-1.5x)
-   - Random rotation (±15°)
-   - Color jittering
-4. **Training Parameters**:
-   - Epochs: 100
-   - Batch size: 16
-   - Learning rate: 0.01
-   - Optimizer: SGD with momentum
+### 3. Background Removal (Segmentation)
+To ensure color features are extracted only from the object (and not the background), the system uses **YOLOv8-Segmentation**.
+> *Workflow:* BBox -> Mask Generation -> Bitwise-AND Masking -> Isolated Object ROI.
 
-## Feature Extraction
+### 4. Multimodal Feature Extraction
+For every isolated object, we extract:
+- **Color:** RGB/HSV Histograms & K-Means Dominant Colors (5 clusters).
+- **Texture:** Tamura Descriptors (Contrast, Coarseness) & Gabor Filters.
+- **Shape:** Hu Moments & Histogram of Oriented Gradients (HOG).
 
-For each detected object, the following visual features are extracted:
+### 5. Similarity Search
+Query features are compared against the `features.json` database using a **Weighted Euclidean Distance** algorithm. Results are filtered by class to ensure semantic relevance.
 
-### Color Features
-- RGB Histogram (48 bins)
-- HSV Histogram (48 bins)
-- Mean RGB values
-- Standard deviation RGB
-- **Dominant Colors** (5 colors via K-Means clustering)
+---
 
-### Texture Features
-- **Tamura Descriptors**: Coarseness, Contrast, Directionality
-- **Gabor Filter Responses**: 8 orientations × 2 frequencies
-- **Local Binary Pattern (LBP)**: Rotation-invariant texture
+## 📸 Workflow Demonstration
 
-### Shape Features
-- **Hu Moments**: 7 invariant moments
-- **HOG Descriptors**: Histogram of Oriented Gradients
-- **Contour Orientation Histogram**: Edge direction distribution
+| Step 1: Upload & Detect | Step 2: Segmentation | Step 3: Similarity Search |
+| :---: | :---: | :---: |
+| ![Detection](https://via.placeholder.com/300x200?text=YOLO+Detection+BBox) | ![Segmentation](https://via.placeholder.com/300x200?text=Background+Removed+ROI) | ![Search](https://via.placeholder.com/300x200?text=Similarity+Results+Grid) |
+| *YOLO identifies the Dog/Horse* | *Background is set to black* | *Top K matches from gallery* |
 
-## Usage
+---
 
-To use this CBIR system:
+## 🏗️ DevOps Architecture
 
-1. **Upload Images**: Add images to the gallery
-2. **Object Detection**: Automatically detect objects using YOLOv8n
-3. **Feature Extraction**: Extract visual features from detected objects
-4. **Similarity Search**: Find similar objects based on visual content
+The project is built with a production-first Docker architecture:
 
-## Docker & Local Development 🔧
+<p align="center">
+  <b>Shape-based Retrieval Example</b><br>
+  <img src="demo/images/sys-arch.png" width="600" alt="Shape-based Retrieval"><br><br>
+</p>
 
-This project includes Dockerfiles for the **frontend** (Vite + nginx) and **backend** (Flask) and a `docker-compose.yml` to run both services together.
+### Key Optimizations:
+- **Offline Inference:** `YOLO_OFFLINE=True` environment variable prevents the system from crashing due to GitHub rate limits or lack of internet.
+- **Reverse Proxy:** Nginx handles CORS and allows large file uploads (50MB) for high-resolution image processing.
+- **Resource Management:** Configured with 1 Gunicorn worker and 300s timeout to handle heavy AI CPU tasks without race conditions.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Install Docker and Docker Compose
-- Enable BuildKit for faster, cacheable builds (recommended)
+- Docker & Docker Compose
+- Place your models in the `models/` folder:
+  - `yolov8n_15classes_finetuned.pt`
+  - `yolov8n-seg.pt`
 
-Export BuildKit on Linux/macOS:
-
-```
-export DOCKER_BUILDKIT=1
-```
-
-### Build & run (recommended)
-
-Build and start both services (shows logs):
-
-```
-DOCKER_BUILDKIT=1 docker-compose up --build
-```
-
-Start detached:
-
-```
-DOCKER_BUILDKIT=1 docker-compose up -d --build
-```
-
-Check services:
-
-- Frontend: http://localhost:3000
-- Backend health: http://localhost:5000/api/health
-
-### Tips to reduce build time and image size ⚠️
-
-- The `ultralytics` package may pull large GPU/CUDA wheels (PyTorch/NVIDIA) which greatly increase build time and image size. To avoid this in the production API image we:
-   - Pre-install a **CPU-only** PyTorch wheel before installing other requirements (see `backend/Dockerfile`). Example:
-
-   ```dockerfile
-   RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision
-   RUN --mount=type=cache,target=/root/.cache/pip \ 
-         pip install --no-cache-dir -r requirements.txt
+### Installation
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/SecurDrgorP/CBIR-System.git
+   cd CBIR-System
    ```
 
-- Use BuildKit cache mount for pip (`--mount=type=cache,target=/root/.cache/pip`) to prevent re-downloading wheels between builds. Build with `DOCKER_BUILDKIT=1` as shown above.
-- Move heavy or dev-only packages to `requirements-dev.txt` and only install them in development images.
-- If you need GPU inference, consider running the model on a separate GPU-enabled container or host, and keep the API container lightweight.
+2. **Run with Docker Compose:**
+   ```bash
+   docker-compose up --build
+   ```
 
-If you'd like, I can run a test build locally (or update the Dockerfile further to split dev/production requirements) — tell me to proceed and I'll run the build and report any issues. ✅
+3. **Access the App:**
+   - Frontend: `http://localhost:3000`
+   - Backend API: `http://localhost:5000/api`
+   - Health Check: `http://localhost:3000/api/health`
 
-## ImageNet Resources
+---
 
-- **Official Website**: [https://image-net.org](https://image-net.org)
-- **WordNet**: [https://wordnet.princeton.edu](https://wordnet.princeton.edu)
-- **ILSVRC**: ImageNet Large Scale Visual Recognition Challenge
+## 📁 Project Structure
 
-## References
+```text
+.
+├── backend
+│   ├── app.py              # Flask Entry Point
+│   ├── database/           # JSON Feature Store
+│   ├── services/           # AI Logic (Detection, Extraction, Search)
+│   └── uploads/            # User Image Storage
+├── frontend
+│   ├── src/
+│   │   ├── services/api.js # API Client (Proxied)
+│   │   └── components/     # UI Pipeline components
+│   └── nginx.conf          # Reverse Proxy Configuration
+├── models/                 # .pt Model Files (Volume Mounted)
+└── docker-compose.yml      # Orchestration
+```
 
-1. Deng, J., et al. "ImageNet: A large-scale hierarchical image database." CVPR 2009.
-2. Jocher, G., et al. "Ultralytics YOLOv8." GitHub, 2023.
-3. Tamura, H., et al. "Textural features corresponding to visual perception." IEEE SMC, 1978.
-4. Hu, M. K. "Visual pattern recognition by moment invariants." IRE Transactions, 1962.
+---
+
+## 📡 API Reference
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/images/upload` | `POST` | Upload images to gallery |
+| `/api/detect` | `POST` | Run YOLO on specific image_id |
+| `/api/features/extract` | `POST` | Extract visual features from object |
+| `/api/search/similar` | `POST` | Find top K similar items |
+| `/api/stats` | `GET` | Get database statistics |
+
