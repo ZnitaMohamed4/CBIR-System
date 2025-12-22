@@ -129,4 +129,4 @@ The YOLOv8n model is fine-tuned on these ImageNet categories:
 14. Pizza
 15. Laptop
 
-See [CATEGORIES.md](../CATEGORIES.md) for detailed information.
+See [README.md](../README.md) for detailed information.

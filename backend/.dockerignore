@@ -1,0 +1,24 @@
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.venv/
+venv/
+env/
+.env
+
+# Frontend
+**/node_modules/
+**/dist/
+**/build/
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Data (Don't copy local uploads/backups into the image)
+backend/uploads/*
+backend/database/*
+backend/output_*

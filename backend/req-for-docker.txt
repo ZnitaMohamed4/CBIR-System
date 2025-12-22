@@ -1,0 +1,11 @@
+flask
+flask-restful
+flask-cors
+ultralytics
+opencv-python-headless
+numpy
+scikit-image
+scikit-learn
+scipy
+Pillow
+gunicorn

@@ -1,44 +1,27 @@
-# /home/muhammed/Documents/SmartGallery/backend/services/feature_extraction.py
-"""
-Main Feature Extraction Service for CBIR System
-Orchestrates extraction of color, texture, and shape features
-"""
-
 import cv2
 from .color_features import ColorFeatureExtractor
 from .texture_features import TextureFeatureExtractor
 from .shape_features import ShapeFeatureExtractor
 
-
 class FeatureExtractionService:
     """Main service that coordinates all feature extraction"""
     
-    def __init__(self):
-        self.color_extractor = ColorFeatureExtractor()
+    def __init__(self, seg_model_path=None):
+        # Pass the segmentation model path to color extractor to avoid download
+        self.color_extractor = ColorFeatureExtractor(segmentation_model_path=seg_model_path)
         self.texture_extractor = TextureFeatureExtractor()
         self.shape_extractor = ShapeFeatureExtractor()
     
     def extract_all_features(self, image_path, bbox):
-        """
-        Extract all features from an object region
-        
-        Args:
-            image_path: Path to image
-            bbox: Bounding box [x1, y1, x2, y2]
-            
-        Returns:
-            Dictionary with all features
-        """
-        # Load image and extract region
         img = cv2.imread(str(image_path))
+        if img is None: return None
+        
         x1, y1, x2, y2 = [int(v) for v in bbox]
         roi = img[y1:y2, x1:x2]
         
-        if roi.size == 0:
-            return None
+        if roi.size == 0: return None
         
-        # Extract features using specialized extractors
-        features = {
+        return {
             'color': self.color_extractor.extract_color_features(roi),
             'texture_tamura': self.texture_extractor.extract_tamura_features(roi),
             'texture_gabor': self.texture_extractor.extract_gabor_features(roi),
@@ -47,15 +30,10 @@ class FeatureExtractionService:
             'shape_hog': self.shape_extractor.extract_hog_features(roi),
             'shape_contour': self.shape_extractor.extract_contour_orientation_histogram(roi)
         }
-        
-        return features
     
     def format_features_for_display(self, features):
-        """Format features for visualization in frontend"""
-        if not features:
-            return None
-        
-        formatted = {
+        if not features: return None
+        return {
             'color': {
                 'dominant_colors': features['color'].get('dominant_colors', []),
                 'mean_rgb': features['color'].get('mean_rgb', []),
@@ -80,5 +58,3 @@ class FeatureExtractionService:
                 'orientation_variance': features.get('shape_contour', {}).get('orientation_variance', 0)
             }
         }
-        
-        return formatted

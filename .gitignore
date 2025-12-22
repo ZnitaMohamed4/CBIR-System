@@ -2,6 +2,7 @@
 env/
 venv/
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -15,8 +16,9 @@ build/
 # Backend
 backend/uploads/*
 !backend/uploads/.gitkeep
-backend/database/features.json
-backend/database/*.json
+backend/database/*
+backend/.venv/
+backend/output_*
 
 # Models (too large)
 *.pt

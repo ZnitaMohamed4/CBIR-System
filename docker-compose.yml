@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: cbir-backend
+    restart: unless-stopped
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/database:/app/database
+      # Mounting models to the /app/models internal directory
+      - ./models:/app/models:ro
+      - ultralytics_settings:/tmp/Ultralytics
+    environment:
+      - PYTHONUNBUFFERED=1
+      - YOLO_OFFLINE=True
+      - MODEL_PATH=/app/models/yolov8n_15classes_finetuned.pt
+      - SEG_MODEL_PATH=/app/models/yolov8n-seg.pt
+      - UPLOAD_FOLDER=/app/uploads
+      - DATABASE_PATH=/app/database/features.json
+      - YOLO_CONFIG_DIR=/tmp
+    networks:
+      - cbir-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: cbir-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    networks:
+      - cbir-network
+
+volumes:
+  ultralytics_settings:
+
+networks:
+  cbir-network:
+    driver: bridge
