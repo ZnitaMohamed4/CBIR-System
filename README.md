@@ -1,15 +1,11 @@
-This is the comprehensive, professional `README.md` for your project. It includes a detailed explanation of the **AI Pipeline**, the **DevOps architecture**, and placeholders for your workflow images.
-
----
-
-# 🖼️ SmartGallery CBIR System
+# SmartGallery CBIR System
 ### *AI-Powered Content-Based Image Retrieval with YOLOv8*
 
 SmartGallery is a high-performance **Full-Stack CBIR (Content-Based Image Retrieval)** system. It allows users to upload images, automatically detect objects using a fine-tuned **YOLOv8** model, extract deep visual features (Color, Texture, Shape), and perform similarity searches across a gallery.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 - **Frontend:** React.js (Vite), TailwindCSS, Axios.
 - **Backend:** Flask, Flask-RESTful, Gunicorn.
 - **AI/ML:** Ultralytics YOLOv8, OpenCV, Scikit-Learn, Scikit-Image.
@@ -17,7 +13,7 @@ SmartGallery is a high-performance **Full-Stack CBIR (Content-Based Image Retrie
 
 ---
 
-## 🔄 The AI Pipeline Workflow
+## The AI Pipeline Workflow
 
 The system follows a sophisticated 5-step pipeline to ensure high-accuracy image retrieval:
 
@@ -43,7 +39,7 @@ Query features are compared against the `features.json` database using a **Weigh
 
 ---
 
-## 📸 Workflow Demonstration
+## Workflow Demonstration
 
 | Step 1: Upload & Detect | Step 2: Segmentation | Step 3: Similarity Search |
 | :---: | :---: | :---: |
@@ -52,7 +48,7 @@ Query features are compared against the `features.json` database using a **Weigh
 
 ---
 
-## 🏗️ DevOps Architecture
+## DevOps Architecture
 
 The project is built with a production-first Docker architecture:
 
@@ -68,7 +64,7 @@ The project is built with a production-first Docker architecture:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Docker & Docker Compose
@@ -95,7 +91,7 @@ The project is built with a production-first Docker architecture:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 .
@@ -115,7 +111,7 @@ The project is built with a production-first Docker architecture:
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
